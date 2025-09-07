@@ -51,9 +51,12 @@ async def handler(message: Message):
             break
 
 async def main():
-    await bot.set_my_commands([BotCommand("pic", "Generate image")])
+    await bot.set_my_commands([
+        BotCommand(command="pic", description="Generate image")
+    ])
     print("Бот запущен…")
     await dp.start_polling(bot)
+
 
 if __name__ == "__main__":
     asyncio.run(main())
