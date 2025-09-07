@@ -3,12 +3,12 @@ import string
 from io import BytesIO
 from aiogram import Bot, Dispatcher
 from aiogram.types import Message, BotCommand
-from craiyon import Craiyon  # библиотека для генерации картинок
+from craiyon import Craiyon  # из пакета craiyon.py
 
 # 🔑 Твой токен
 TOKEN = "5754410446:AAEGkNkTL5gB0Bo8w5qwmh5ZfxGyHOeyX4I"
 
-# 👇 сюда вставь file_id своего стикера
+# 👇 file_id стикера
 STICKER_ID = "CAACAgIAAxkBAAEPRx9osv3fEm_YpnmF9di9yNREBJnjxwACuw0AAq9OeUiyCBJMdTHfNjYE"
 
 bot = Bot(token=TOKEN)
@@ -28,19 +28,17 @@ async def handler(message: Message):
             await message.reply("Напиши, что сгенерировать: /pic кот в космосе")
             return
 
-        await message.reply("⏳ Генерация через Craiyon, подожди 15–30 секунд...")
+        await message.reply("⏳ Генерация через Craiyon, подожди 20–40 секунд...")
 
         try:
-            generator = Craiyon()
-            # генерация в отдельном потоке, т.к. блокирующая
-            result = await asyncio.to_thread(generator.generate, prompt)
+            generator = Craiyon()  # клиент
+            result = await asyncio.to_thread(generator.async_generate, prompt)
 
-            # берём первую картинку
-            img = result.images[0]
-            bio = BytesIO(img)
-            bio.name = "craiyon.png"
-
-            await bot.send_photo(message.chat.id, photo=bio, caption=f"✨ {prompt}")
+            # берём первые 3 картинки
+            for img in result.images[:3]:
+                bio = BytesIO(img)
+                bio.name = "craiyon.png"
+                await bot.send_photo(message.chat.id, photo=bio)
 
         except Exception as e:
             await message.reply(f"⚠️ Ошибка: {e}")
