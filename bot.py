@@ -1,7 +1,8 @@
 import asyncio
 import string
-import urllib.parse
+import base64
 import aiohttp
+from io import BytesIO
 from aiogram import Bot, Dispatcher
 from aiogram.types import Message, BotCommand, FSInputFile
 
@@ -26,27 +27,34 @@ async def handler(message: Message):
             await message.reply("Напиши, что сгенерировать: /pic кот в космосе")
             return
 
-        await message.reply("⏳ Генерирую картинку...")
-
-        encoded = urllib.parse.quote_plus(prompt)
-        # ⚠️ Это пример — возьмём API Craiyon (демо)
-        url = f"https://image.pollinations.ai/prompt/{encoded}"
+        await message.reply("⏳ Генерирую картинку через Craiyon... (занимает 15–30 сек)")
 
         try:
-            # качаем картинку
             async with aiohttp.ClientSession() as session:
-                async with session.get(url) as resp:
+                # отправляем запрос на Craiyon API
+                async with session.post(
+                    "https://backend.craiyon.com/generate",
+                    json={"prompt": prompt}
+                ) as resp:
                     if resp.status != 200:
-                        await message.reply(f"Ошибка генерации: {resp.status}")
+                        await message.reply(f"Ошибка Craiyon: {resp.status}")
                         return
-                    data = await resp.read()
-                    file_path = f"temp.png"
-                    with open(file_path, "wb") as f:
-                        f.write(data)
+                    data = await resp.json()
 
-            # отправляем как файл
-            photo = FSInputFile(file_path)
-            await bot.send_photo(message.chat.id, photo=photo, caption=f"✨ {prompt}")
+            # Craiyon отдаёт список base64 картинок
+            images = data.get("images")
+            if not images:
+                await message.reply("⚠️ Craiyon не вернул изображения")
+                return
+
+            # Берём первую картинку
+            img_b64 = images[0]
+            img_bytes = base64.b64decode(img_b64)
+
+            # Отправляем как файл (без сохранения на диск)
+            bio = BytesIO(img_bytes)
+            bio.name = "image.png"
+            await bot.send_photo(message.chat.id, photo=bio, caption=f"✨ {prompt}")
 
         except Exception as e:
             await message.reply(f"⚠️ Ошибка: {e}")
@@ -63,7 +71,7 @@ async def handler(message: Message):
 
 async def main():
     await bot.set_my_commands([
-        BotCommand(command="pic", description="Generate image")
+        BotCommand(command="pic", description="Generate image with Craiyon")
     ])
     print("Бот запущен…")
     await dp.start_polling(bot)
