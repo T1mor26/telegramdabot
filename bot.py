@@ -3,17 +3,16 @@ import string
 from io import BytesIO
 from aiogram import Bot, Dispatcher
 from aiogram.types import Message, BotCommand
-from craiyon import Craiyon  # из пакета craiyon.py
+from craiyon import Craiyon
 
-# 🔑 Твой токен
+# Токен бота
 TOKEN = "5754410446:AAEGkNkTL5gB0Bo8w5qwmh5ZfxGyHOeyX4I"
 
-# 👇 file_id стикера
+# file_id твоего стикера
 STICKER_ID = "CAACAgIAAxkBAAEPRx9osv3fEm_YpnmF9di9yNREBJnjxwACuw0AAq9OeUiyCBJMdTHfNjYE"
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
-
 
 @dp.message()
 async def handler(message: Message):
@@ -21,7 +20,7 @@ async def handler(message: Message):
     if not text:
         return
 
-    # команда /pic
+    # Команда /pic
     if text.startswith("/pic"):
         prompt = text.replace("/pic", "").strip()
         if not prompt:
@@ -31,10 +30,10 @@ async def handler(message: Message):
         await message.reply("⏳ Генерация через Craiyon, подожди 20–40 секунд...")
 
         try:
-            generator = Craiyon()  # клиент
-            result = await asyncio.to_thread(generator.async_generate, prompt)
+            generator = Craiyon()
+            result = await asyncio.to_thread(generator.generate, prompt)
 
-            # берём первые 3 картинки
+            # Отправляем три картинки в ответ
             for img in result.images[:3]:
                 bio = BytesIO(img)
                 bio.name = "craiyon.png"
@@ -44,7 +43,7 @@ async def handler(message: Message):
             await message.reply(f"⚠️ Ошибка: {e}")
         return
 
-    # если не команда → проверка на "да" и "пизда"
+    # Проверка слов "да" или "пизда"
     words = text.strip().lower().split()
     for word in words:
         clean = word.strip(string.punctuation)
@@ -52,14 +51,12 @@ async def handler(message: Message):
             await message.reply_sticker(STICKER_ID)
             break
 
-
 async def main():
     await bot.set_my_commands([
         BotCommand(command="pic", description="Generate image with Craiyon")
     ])
     print("Бот запущен…")
     await dp.start_polling(bot)
-
 
 if __name__ == "__main__":
     asyncio.run(main())
