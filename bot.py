@@ -4,22 +4,25 @@ import urllib.parse
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import BotCommand, Message
+from aiogram import Router
 
-# 🔑 токен твоего бота
+# 🔑 токен бота
 TOKEN = "5754410446:AAEGkNkTL5gB0Bo8w5qwmh5ZfxGyHOeyX4I"
 
-# 👇 file_id стикера
+# 👇 file_id твоего стикера
 STICKER_ID = "CAACAgIAAxkBAAEPRx9osv3fEm_YpnmF9di9yNREBJnjxwACuw0AAq9OeUiyCBJMdTHfNjYE"
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
+router = Router()
+dp.include_router(router)
 
-# --- Стикер-триггер: реагируем на слова "да" и "пизда"
+# --- Стикер-триггер: реагируем на "да" и "пизда"
+@router.message()
 async def sticker_trigger(message: Message):
     if not message.text:
         return
-    # Не реагируем на команды вида "/..."
-    if message.text.startswith("/"):
+    if message.text.startswith("/"):  # игнорируем команды
         return
 
     words = message.text.strip().lower().split()
@@ -29,11 +32,10 @@ async def sticker_trigger(message: Message):
             await message.reply_sticker(STICKER_ID)
             break
 
-dp.message.register(sticker_trigger)
-
-# --- Команда /pic <prompt> (Pollinations.AI)
+# --- Команда /pic <prompt>
+@router.message(Command("pic"))
 async def cmd_pic(message: Message):
-    prompt = message.text[len("/pic"):].strip()
+    prompt = message.text.replace("/pic", "").strip()
     if not prompt:
         await message.reply("Напиши, что сгенерировать. Пример:\n/pic cat in space")
         return
@@ -47,11 +49,8 @@ async def cmd_pic(message: Message):
     except Exception as e:
         await message.reply(f"⚠️ Не удалось отправить изображение: {e}")
 
-# Регистрируем как TG-команду
-dp.message.register(cmd_pic, Command("pic"))
-
+# --- Старт
 async def main():
-    # Настроим список команд в меню бота
     await bot.set_my_commands([
         BotCommand(command="pic", description="Generate an image from text"),
     ])
